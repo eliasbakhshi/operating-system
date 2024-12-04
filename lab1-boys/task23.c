@@ -1,108 +1,99 @@
-#include <stdio.h>                  // Includes standard input/output functions.
-#include <stdlib.h>                 // Includes memory allocation and utility functions.
-#include <stdbool.h>                // Enables usage of `true` and `false` in the code.
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-// Function to find the page to replace based on future usage
-int findPageToReplace(int *frames, int frameCount, int *references, int currentIndex, int totalRefs) {
-    int farthest = -1;              // Tracks the farthest future reference of any page in frames.
-    int replaceIndex = -1;          // Index of the page to be replaced.
+int locateEvictionIndex(int *slots, int slotLimit, int *accessSequence, int currentStep, int sequenceLength) {
+    int farthestAccess = -1;
+    int evictionSlot = -1;
 
-    for (int i = 0; i < frameCount; i++) { // Iterate over all frames.
-        int j;
-        for (j = currentIndex + 1; j < totalRefs; j++) { // Search for future references of the current page.
-            if (frames[i] == references[j]) { // If the page in frame is found in future references:
-                if (j > farthest) {           // Check if it's the farthest found so far.
-                    farthest = j;             // Update the farthest reference.
-                    replaceIndex = i;         // Update the index of the page to replace.
+    for (int slot = 0; slot < slotLimit; slot++) {
+        int step;
+        for (step = currentStep + 1; step < sequenceLength; step++) {
+            if (slots[slot] == accessSequence[step]) {
+                if (step > farthestAccess) {
+                    farthestAccess = step;
+                    evictionSlot = slot;
                 }
-                break;                        // Stop checking further references for this page.
+                break;
             }
         }
-        // If the page is never used in the future, return it immediately
-        if (j == totalRefs) {
-            return i;                         // Return the index of the unused page.
+        if (step == sequenceLength) {
+            return slot;
         }
     }
 
-    return (replaceIndex == -1) ? 0 : replaceIndex; // If no page was marked, replace the first one (default).
+    return (evictionSlot == -1) ? 0 : evictionSlot;
 }
 
-// Function to check if a page is already in memory
-bool isPageInMemory(int *frames, int frameCount, int page) {
-    for (int i = 0; i < frameCount; i++) { // Iterate through the frames.
-        if (frames[i] == page) {           // Check if the current frame contains the page.
-            return true;                   // Return true if page is found in memory.
+bool slotContainsPage(int *slots, int slotLimit, int page) {
+    for (int slot = 0; slot < slotLimit; slot++) {
+        if (slots[slot] == page) {
+            return true;
         }
     }
-    return false;                          // Return false if the page is not in memory.
+    return false;
 }
 
-// Function to simulate the Optimal Page Replacement Algorithm
-int optimalPageReplacement(int *references, int totalRefs, int frameCount) {
-    int *frames = (int *)malloc(frameCount * sizeof(int)); // Allocate memory for the frames array.
-    for (int i = 0; i < frameCount; i++) { // Initialize all frames to -1 (empty).
-        frames[i] = -1;
+int simulateOptimalAlgorithm(int *accessSequence, int sequenceLength, int slotLimit) {
+    int *slots = (int *)malloc(slotLimit * sizeof(int));
+    for (int i = 0; i < slotLimit; i++) {
+        slots[i] = -1;
     }
 
-    int pageFaults = 0;                    // Initialize the page fault counter.
+    int faultCount = 0;
 
-    for (int i = 0; i < totalRefs; i++) {  // Iterate over all memory references.
-        int currentPage = references[i];  // Get the current page from the references.
+    for (int step = 0; step < sequenceLength; step++) {
+        int pageNumber = accessSequence[step];
 
-        if (!isPageInMemory(frames, frameCount, currentPage)) { // Check if the page is in memory.
-            pageFaults++;               // Increment the page fault counter if not in memory.
-
-            if (i >= frameCount) {      // If all frames are occupied:
-                int replaceIndex = findPageToReplace(frames, frameCount, references, i, totalRefs); // Find the best page to replace.
-                frames[replaceIndex] = currentPage; // Replace the selected page with the current page.
+        if (!slotContainsPage(slots, slotLimit, pageNumber)) {
+            faultCount++;
+            if (step >= slotLimit) {
+                int evictionIndex = locateEvictionIndex(slots, slotLimit, accessSequence, step, sequenceLength);
+                slots[evictionIndex] = pageNumber;
             } else {
-                frames[i] = currentPage; // If frames are not full, add the page directly.
+                slots[step] = pageNumber;
             }
         }
     }
 
-    free(frames);                        // Free the memory allocated for the frames array.
-    return pageFaults;                   // Return the total number of page faults.
+    free(slots);
+    return faultCount;
 }
 
-// Main function
 int main(int argc, char *argv[]) {
-    if (argc != 4) {                     // Check if the correct number of arguments is provided.
-        fprintf(stderr, "Usage: %s no_phys_pages page_size filename\n", argv[0]); // Print usage.
-        return 1;                        // Exit with error if arguments are incorrect.
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s num_slots slot_size trace_file\n", argv[0]);
+        return 1;
     }
 
-    int no_phys_pages = atoi(argv[1]);   // Parse the number of physical pages from arguments.
-    int page_size = atoi(argv[2]);       // Parse the page size from arguments.
-    const char *filename = argv[3];      // Get the filename of the trace file.
+    int numSlots = atoi(argv[1]);
+    int slotSize = atoi(argv[2]);
+    const char *traceFile = argv[3];
 
-    printf("No physical pages = %d, page size = %d\n", no_phys_pages, page_size); // Print input details.
-    printf("Reading memory trace from %s...\n", filename); // Indicate the start of trace reading.
+    printf("No physical slots = %d, slot size = %d\n", numSlots, slotSize);
+    printf("Reading memory trace from %s...\n", traceFile);
 
-    // Open the memory trace file
-    FILE *file = fopen(filename, "r");   // Open the trace file for reading.
-    if (!file) {                         // Check if the file could not be opened.
-        perror("Error opening file");    // Print the error message.
-        return 1;                        // Exit with an error code.
+    FILE *trace = fopen(traceFile, "r");
+    if (!trace) {
+        perror("Error opening file");
+        return 1;
     }
 
-    // Read memory references from the file
-    int *references = (int *)malloc(100000 * sizeof(int)); // Allocate memory for storing references (max 100000).
-    int totalRefs = 0;                  // Initialize the total reference counter.
-    unsigned int address;               // Variable to store the address read from the file.
+    int *sequence = (int *)malloc(100000 * sizeof(int));
+    int sequenceLength = 0;
+    unsigned int memoryAddress;
 
-    while (fscanf(file, "%u", &address) == 1) { // Read memory addresses from the file.
-        references[totalRefs++] = address / page_size; // Convert address to page number and store it.
+    while (fscanf(trace, "%u", &memoryAddress) == 1) {
+        sequence[sequenceLength++] = memoryAddress / slotSize;
     }
 
-    fclose(file);                        // Close the trace file after reading.
-    printf("Read %d memory references\n", totalRefs); // Print the total number of memory references read.
+    fclose(trace);
+    printf("Read %d memory accesses\n", sequenceLength);
 
-    // Perform Optimal Page Replacement and count page faults
-    int pageFaults = optimalPageReplacement(references, totalRefs, no_phys_pages); // Calculate page faults.
+    int faultResult = simulateOptimalAlgorithm(sequence, sequenceLength, numSlots);
 
-    printf("Result: %d page faults\n", pageFaults); // Print the total number of page faults.
+    printf("Result: %d page faults\n", faultResult);
 
-    free(references);                    // Free the memory allocated for the references array.
-    return 0;                            // Return 0 to indicate successful execution.
+    free(sequence);
+    return 0;
 }
