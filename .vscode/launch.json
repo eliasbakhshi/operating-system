@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/mnt/hgfs/share/projects/operating-system/lab1-boys",
-      "program": "/mnt/hgfs/share/projects/operating-system/lab1-boys/build/Debug/outDebug",
+      "cwd": "/home/bilal/projects/operating-system/lab2",
+      "program": "/home/bilal/projects/operating-system/lab2/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

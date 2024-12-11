@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cstdint>
+#include <string>
+#include <vector>
 #include "disk.h"
 
 #ifndef __FS_H__
@@ -29,7 +31,8 @@ private:
     Disk disk;
     // size of a FAT entry is 2 bytes
     int16_t fat[BLOCK_SIZE/2];
-
+        uint16_t current_directory; // Track the current directory
+    std::vector<std::string> current_path; // Track the path from root to current directory
 public:
     FS();
     ~FS();

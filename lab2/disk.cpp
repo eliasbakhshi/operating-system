@@ -33,9 +33,7 @@ Disk::disk_file_exists (const std::string& name) {
 }
 
 // writes one block to the disk
-int
-Disk::write(unsigned block_no, uint8_t *blk)
-{
+int Disk::write(unsigned block_no, uint8_t *blk) {
     if (DEBUG)
         std::cout << "Disk::write(" << block_no << ")\n";
     // check if valid block number
@@ -50,15 +48,12 @@ Disk::write(unsigned block_no, uint8_t *blk)
     return 0;
 }
 
-// reads one block from the disk
-int
-Disk::read(unsigned block_no, uint8_t *blk)
-{
+int Disk::read(unsigned block_no, uint8_t *blk) {
     if (DEBUG)
         std::cout << "Disk::read(" << block_no << ")\n";
     // check if valid block number
     if (block_no >= no_blocks) {
-        std::cout << "Disk::write - ERROR: Invalid block number (" << block_no << ")\n";
+        std::cout << "Disk::read - ERROR: Invalid block number (" << block_no << ")\n";
         return -1;
     }
     unsigned offset = block_no * BLOCK_SIZE;
