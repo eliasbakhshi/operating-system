@@ -1,8 +1,9 @@
 #include <iostream>
 #include <cstdint>
 #include <string>
-#include <vector>
 #include "disk.h"
+#include <vector>
+
 
 #ifndef __FS_H__
 #define __FS_H__
@@ -18,21 +19,37 @@
 #define WRITE 0x02
 #define EXECUTE 0x01
 
+// #define DIR_SIZE BLOCK_SIZE/sizeof(dir_entry)
+// #define FAT_ENTRIES BLOCK_SIZE/2
+
 struct dir_entry {
     char file_name[56]; // name of the file / sub-directory
     uint32_t size; // size of the file in bytes
     uint16_t first_blk; // index in the FAT for the first block of the file
     uint8_t type; // directory (1) or file (0)
     uint8_t access_rights; // read (0x04), write (0x02), execute (0x01)
+    uint16_t parent_blk; // index in the FAT for the parent directory
+
 };
 
 class FS {
 private:
+    int moveToDirectory(dir_entry* src_entry, int src_index, dir_entry* dest_dir);
+
+    int copyToDirectory(dir_entry* src_entry, dir_entry* dest_dir);
+    int copyWithNewName(dir_entry* src_entry, std::string newname);
+    std::vector<std::string> splitPath(const std::string& path);
+    dir_entry* findEntryInBlock(const std::string& name, uint16_t block);
+    int navigateToPath(const std::string& path, bool excludeLast = false);
+    bool isAbsolutePath(const std::string& path);
+    std::string cleanPath(const std::string& path);
     Disk disk;
     // size of a FAT entry is 2 bytes
+    std::string current_path;  // Add this member
+
+    uint16_t current_dir_block; // Tracks current directory block number
     int16_t fat[BLOCK_SIZE/2];
-        uint16_t current_directory; // Track the current directory
-    std::vector<std::string> current_path; // Track the path from root to current directory
+
 public:
     FS();
     ~FS();
